@@ -18,6 +18,7 @@ import memory_saving_gradients
 
 CHECKPOINT_DIR = 'checkpoint'
 SAMPLE_DIR = 'samples'
+MAX_NUM_ITERATIONS = 50
 
 
 parser = argparse.ArgumentParser(
@@ -256,38 +257,42 @@ def main():
 
         try:
             while True:
-                if counter % args.save_every == 0:
-                    save()
-                if counter % args.sample_every == 0:
-                    generate_samples()
-                if args.val_every > 0 and (counter % args.val_every == 0 or counter == 1):
-                    validation()
+                if counter < MAX_NUM_ITERATIONS:
+                    if counter % args.save_every == 0:
+                        save()
+                    if counter % args.sample_every == 0:
+                        generate_samples()
+                    if args.val_every > 0 and (counter % args.val_every == 0 or counter == 1):
+                        validation()
 
-                if args.accumulate_gradients > 1:
-                    sess.run(opt_reset)
-                    for _ in range(args.accumulate_gradients):
-                        sess.run(
-                            opt_compute, feed_dict={context: sample_batch()})
-                    (v_loss, v_summary) = sess.run((opt_apply, summaries))
+                    if args.accumulate_gradients > 1:
+                        sess.run(opt_reset)
+                        for _ in range(args.accumulate_gradients):
+                            sess.run(
+                                opt_compute, feed_dict={context: sample_batch()})
+                        (v_loss, v_summary) = sess.run((opt_apply, summaries))
+                    else:
+                        (_, v_loss, v_summary) = sess.run(
+                            (opt_apply, loss, summaries),
+                            feed_dict={context: sample_batch()})
+
+                    summary_log.add_summary(v_summary, counter)
+
+                    avg_loss = (avg_loss[0] * 0.99 + v_loss,
+                                avg_loss[1] * 0.99 + 1.0)
+
+                    print(
+                        '[{counter} | {time:2.2f}] loss={loss:2.2f} avg={avg:2.2f}'
+                        .format(
+                            counter=counter,
+                            time=time.time() - start_time,
+                            loss=v_loss,
+                            avg=avg_loss[0] / avg_loss[1]))
+
+                    counter += 1
                 else:
-                    (_, v_loss, v_summary) = sess.run(
-                        (opt_apply, loss, summaries),
-                        feed_dict={context: sample_batch()})
-
-                summary_log.add_summary(v_summary, counter)
-
-                avg_loss = (avg_loss[0] * 0.99 + v_loss,
-                            avg_loss[1] * 0.99 + 1.0)
-
-                print(
-                    '[{counter} | {time:2.2f}] loss={loss:2.2f} avg={avg:2.2f}'
-                    .format(
-                        counter=counter,
-                        time=time.time() - start_time,
-                        loss=v_loss,
-                        avg=avg_loss[0] / avg_loss[1]))
-
-                counter += 1
+                    print("Finished")
+                    save()
         except KeyboardInterrupt:
             print('interrupted')
             save()
