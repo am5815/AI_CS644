@@ -9,6 +9,9 @@ We have currently released small (117M parameter) and medium (345M parameter) ve
 
 See more details in our [blog post](https://blog.openai.com/better-language-models/).
 
+# Presentation
+https://docs.google.com/presentation/d/1TBCxOA_FvNz7LZYfXSkNfIhu2hRnM1ac8hHbgk5n1b0/edit#slide=id.p
+
 ## Usage
 
 This repository is meant to be a starting point for researchers and engineers to experiment with GPT-2.
